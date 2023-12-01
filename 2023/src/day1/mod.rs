@@ -77,10 +77,99 @@ fn day1_part2(input: String) -> u32 {
     ]);
     return get_calibration(input, numbers);
 }
-mod tests {
-    use std::fs;
 
+mod refactor {
+    //refactor using slices and patter maching
+    fn get_first_number(input: &str, part2: bool) -> char {
+        match input {
+            _ if part2 && input.starts_with("one") => '1',
+            _ if input.starts_with("1") => '1',
+            _ if part2 && input.starts_with("two") => '2',
+            _ if input.starts_with("2") => '2',
+            _ if part2 && input.starts_with("three") => '3',
+            _ if input.starts_with("3") => '3',
+            _ if part2 && input.starts_with("four") => '4',
+            _ if input.starts_with("4") => '4',
+            _ if part2 && input.starts_with("five") => '5',
+            _ if input.starts_with("5") => '5',
+            _ if part2 && input.starts_with("six") => '6',
+            _ if input.starts_with("6") => '6',
+            _ if part2 && input.starts_with("seven") => '7',
+            _ if input.starts_with("7") => '7',
+            _ if part2 && input.starts_with("eight") => '8',
+            _ if input.starts_with("8") => '8',
+            _ if part2 && input.starts_with("nine") => '9',
+            _ if input.starts_with("9") => '9',
+            _ => {
+                if input.len() < 1 {
+                    return '0';
+                }
+                get_first_number(&input[1..], part2)
+            }
+        }
+    }
+
+    fn get_last_number(input: &str, part2: bool) -> char {
+        match input {
+            _ if part2 && input.ends_with("one") => '1',
+            _ if input.ends_with("1") => '1',
+            _ if part2 && input.ends_with("two") => '2',
+            _ if input.ends_with("2") => '2',
+            _ if part2 && input.ends_with("three") => '3',
+            _ if input.ends_with("3") => '3',
+            _ if part2 && input.ends_with("four") => '4',
+            _ if input.ends_with("4") => '4',
+            _ if part2 && input.ends_with("five") => '5',
+            _ if input.ends_with("5") => '5',
+            _ if part2 && input.ends_with("six") => '6',
+            _ if input.ends_with("6") => '6',
+            _ if part2 && input.ends_with("seven") => '7',
+            _ if input.ends_with("7") => '7',
+            _ if part2 && input.ends_with("eight") => '8',
+            _ if input.ends_with("8") => '8',
+            _ if part2 && input.ends_with("nine") => '9',
+            _ if input.ends_with("9") => '9',
+            _ => {
+                if input.len() < 1 {
+                    return '0';
+                }
+                get_last_number(&input[0..input.len() - 1], part2)
+            }
+        }
+    }
+
+    fn run(input: String, part2: bool) -> u32 {
+        let lines: Vec<&str> = input.split("\n").collect();
+        lines
+            .iter()
+            .map(|line| {
+                let first_digit = get_first_number(line, part2);
+                let mut last_digit = get_last_number(line, part2);
+                if last_digit == '0' {
+                    last_digit = first_digit;
+                }
+                return format!("{}{}", first_digit, last_digit)
+                    .parse::<u32>()
+                    .expect("wrong format");
+            })
+            .sum()
+    }
+
+    pub fn day1_part1(input: String) -> u32 {
+        run(input, false)
+    }
+
+    pub fn day1_part2(input: String) -> u32 {
+        run(input, true)
+    }
+}
+
+mod tests {
     use super::*;
+    // uncomment to test the refactor with slices
+    // use super::refactor::*;
+    use anyhow::{Ok, Result};
+    use std::fs;
     #[test]
     fn day1_part1_small_test() {
         let test = String::from(
@@ -95,6 +184,7 @@ treb7uchet",
     #[test]
     fn day1_part1_test() -> Result<()> {
         let input = fs::read_to_string("./src/day1/input.txt")?;
+
         let r = day1_part1(input);
         println!("{}", r);
         assert_eq!(r, 54331);
