@@ -102,7 +102,6 @@ fn day3(input: String) -> (usize, usize) {
                 continue 'main;
             }
         }
-
         //down
         if key.0 < map.len() - 1 {
             if check_range(&map, num, key.0 + 1, start, end, &mut gears) {
