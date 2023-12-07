@@ -1,37 +1,31 @@
 use std::{cmp::Ordering, collections::BTreeMap};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 enum HandType {
-    // Five of a kind, where all five cards have the same label: AAAAA
-    FiveOfAKind,
-    // Four of a kind, where four cards have the same label and one card has a different label: AA8AA
-    FourOfAKind,
-    // Full house, where three cards have the same label, and the remaining two cards share a different label: 23332
-    FullHouse,
-    // Three of a kind, where three cards have the same label, and the remaining two cards are each different from any other card in the hand: TTT98
-    ThreeOfAKind,
-    // Two pair, where two cards share one label, two other cards share a second label, and the remaining card has a third label: 23432
-    TwoPair,
-    // One pair, where two cards share one label, and the other three cards have a different label from the pair and each other: A23A4
-    OnePair,
-    // High card, where all cards' labels are distinct: 23456
-    HighCard,
+    /// Five of a kind, where all five cards have the same label: AAAAA
+    FiveOfAKind = 7,
+    /// Four of a kind, where four cards have the same label and one card has a different label: AA8AA
+    FourOfAKind = 6,
+    /// Full house, where three cards have the same label, and the remaining two cards share a different label: 23332
+    FullHouse = 5,
+    /// Three of a kind, where three cards have the same label, and the remaining two cards are each different from any other card in the hand: TTT98
+    ThreeOfAKind = 4,
+    /// Two pair, where two cards share one label, two other cards share a second label, and the remaining card has a third label: 23432
+    TwoPair = 3,
+    /// One pair, where two cards share one label, and the other three cards have a different label from the pair and each other: A23A4
+    OnePair = 2,
+    /// High card, where all cards' labels are distinct: 23456
+    HighCard = 1,
 }
 
 #[derive(Debug)]
-struct Rank {
-    hand_type: HandType,
-    idx: usize,
-}
-
-#[derive(Debug)]
-struct Hand<'a> {
-    cards: &'a str,
+struct Hand {
+    cards: Vec<char>,
     bid: usize,
-    rank: Rank,
+    hand_type: HandType,
 }
 
-impl<'a> Hand<'a> {
+impl Hand {
     fn new(input: &str, part2: bool) -> Hand {
         let (cards, bid) = input.split_once(" ").expect("Wrong line format");
         let mut cards_count: BTreeMap<char, usize> =
@@ -45,60 +39,28 @@ impl<'a> Hand<'a> {
                     cards_count_acc
                 });
 
-        let mut max_count = *cards_count.values().max().expect("To have one max count");
-
+        let mut j_count = 0;
         if part2 {
-            let j_count = cards_count.remove(&'J').unwrap_or_default();
-            max_count = *cards_count.values().max().unwrap_or(&0usize);
-            max_count += j_count;
+            j_count = cards_count.remove(&'J').unwrap_or_default();
         }
+        let mut max_count = *cards_count.values().max().unwrap_or(&0usize);
+        max_count += j_count;
 
-        let rank = match max_count {
-            1 => Rank {
-                hand_type: HandType::HighCard,
-                idx: 1,
-            },
-            2 => {
-                if cards_count.len() == 4 {
-                    Rank {
-                        hand_type: HandType::OnePair,
-                        idx: 2,
-                    }
-                } else {
-                    Rank {
-                        hand_type: HandType::TwoPair,
-                        idx: 3,
-                    }
-                }
-            }
-            3 => {
-                if cards_count.len() == 3 {
-                    Rank {
-                        hand_type: HandType::ThreeOfAKind,
-                        idx: 4,
-                    }
-                } else {
-                    Rank {
-                        hand_type: HandType::FullHouse,
-                        idx: 5,
-                    }
-                }
-            }
-            4 => Rank {
-                hand_type: HandType::FourOfAKind,
-                idx: 6,
-            },
-            5 => Rank {
-                hand_type: HandType::FiveOfAKind,
-                idx: 7,
-            },
+        let hand_type = match (max_count, cards_count.len()) {
+            (1, _) => HandType::HighCard,
+            (2, 4) => HandType::OnePair,
+            (2, _) => HandType::TwoPair,
+            (3, 3) => HandType::ThreeOfAKind,
+            (3, _) => HandType::FullHouse,
+            (4, _) => HandType::FourOfAKind,
+            (5, _) => HandType::FiveOfAKind,
             _ => unreachable!(),
         };
 
         Hand {
-            cards,
+            cards: cards.chars().collect(),
             bid: bid.parse().expect("Wrong bid format"),
-            rank,
+            hand_type,
         }
     }
 }
@@ -106,25 +68,24 @@ impl<'a> Hand<'a> {
 fn run(input: String, cards_strenght: &BTreeMap<char, i32>, part2: bool) -> usize {
     let mut hands: Vec<Hand> = input.lines().map(|line| Hand::new(line, part2)).collect();
     hands.sort_by(|a, b| {
-        if a.rank.hand_type == b.rank.hand_type {
-            let a_chars = a.cards.chars().collect::<Vec<char>>();
-            let b_chars = b.cards.chars().collect::<Vec<char>>();
+        if a.hand_type == b.hand_type {
+            for (a_char, b_char) in a.cards.iter().zip(b.cards.iter()) {
+                if a_char == b_char {
+                    continue;
+                }
 
-            for i in 0..a.cards.len() {
-                let a_char = a_chars.get(i).expect("Wrong card format");
-                let b_char = b_chars.get(i).expect("Wrong card format");
                 let a_str = cards_strenght.get(a_char).expect("Wrong card");
                 let b_str = cards_strenght.get(b_char).expect("Wrong card");
-                if a_str > b_str {
-                    return Ordering::Greater;
-                }
-                if a_str < b_str {
-                    return Ordering::Less;
-                }
+                return a_str
+                    .partial_cmp(b_str)
+                    .expect("Strenghts to be comparable");
             }
         }
-        a.rank.idx.partial_cmp(&b.rank.idx).expect("Invalid rank")
+        (a.hand_type as u8)
+            .partial_cmp(&(b.hand_type as u8))
+            .expect("Invalid rank")
     });
+
     let mut starting_rank = 0;
     hands
         .iter()
