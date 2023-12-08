@@ -47,35 +47,34 @@ fn day8_part2(input: String) -> usize {
     let nexts = mapping
         .keys()
         .filter(|k| k.ends_with("A"))
-        .collect::<Vec<&&str>>();
+        .cloned()
+        .collect::<Vec<&str>>();
     let mut cycles = nexts
         .into_par_iter()
         .map(|start| {
             let mut next = start;
-            let mut curr_dirs = vec![];
+            let mut steps = 0;
             loop {
                 for direction in &directions {
-                    curr_dirs.push(*direction);
+                    steps += 1;
                     let current = mapping.get(next).expect("To have the next in the mapping");
                     next = if *direction == "R" {
-                        &current.1
+                        current.1
                     } else {
-                        &current.0
+                        current.0
                     };
                     if next.ends_with("Z") {
-                        return curr_dirs;
+                        return steps;
                     }
                 }
             }
         })
-        .map(|d| d.len())
         .collect::<Vec<usize>>();
 
     let lcm = cycles.pop().expect("To have a cycle");
-    cycles.iter().fold(lcm, |mut acc, cycle| {
-        acc = (acc * (*cycle)) / acc.gcd(*cycle);
-        acc
-    })
+    cycles
+        .into_iter()
+        .fold(lcm, |acc, cycle| (acc * (cycle)) / acc.gcd(cycle))
 }
 
 #[cfg(test)]
